@@ -9,13 +9,12 @@
         integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 
     <style>
-
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap');
 
         * {
             font-family: "Noto Sans KR", sans-serif;
         }
-        
+
         .header {
             width: 800px;
             margin: 0px auto 50px auto;
@@ -145,6 +144,9 @@
         }
 
         let dataid = 0;
+        let isdeleteon = false;
+        let isediton = false;
+
         //입력한 내용 리스트에 추가
         $("#addbtn").click(async function () {
             let dtidnum = twolength(dataid);
@@ -165,19 +167,19 @@
             let dtidnum = twolength(dataid);
             let row = eachdoc.data();
             let done = row['done'];
-            if (done == false) {
-                let items = row['input'];
-                let temp_html = `
+            let temp_html = '';
+            let items = row['input'];
+            temp_html = `
                 <li id="checklist${dtidnum}" class="list-group-item">
-                    <div class="checkfordelete">
-                        <input id="checkfordelete${dtidnum}" class="form-check-input me-1" type="checkbox" value="" id="firstCheckbox">
+                    <div class="checkfordelete" id="checkfordelete${dtidnum}">
+                        <input id="checkfordel${dtidnum}" class="form-check-input me-1" type="checkbox" value="" id="firstCheckbox">
                     </div>
                     <div id="checkandtext${dtidnum}" class="checkandtext">
                         <div class="todobtn">
-                            <button id="checkbtn${dtidnum}" type="button" class="btn">🤍</button>
+                            <button id="checkbtn${dtidnum}" type="button" class="btn"></button>
                         </div>
-                        <div class="textbtn" id="textdiv${dtidnum}">
-                            <font id="textbtn${dtidnum}" class="text">${items}</font>
+                        <div class="textlist" id="textdiv${dtidnum}">
+                            <font id="textlist${dtidnum}" class="text">${items}</font>
                         </div>
                         <div class="textedit">
                             <input id="input${dtidnum}" class="editing" type="text" value="${items}">
@@ -185,38 +187,18 @@
                     </div>
                     
                 </li>`;
-                $('#checklists').append(temp_html);
-                $('#input' + dtidnum).hide();
-                $("#checkfordelete" + dtidnum).hide();
-
-                dataid++;
+            $('#checklists').append(temp_html);
+            let btnicon = "🤍";
+            if (done == true) {
+                btnicon = "🩶";
+                $("#textlist" + dtidnum).css("text-decoration", "line-through");
+                
             }
-            else {
-                let items = row['input'];
-                let temp_html = `
-                <li id="checklist${dtidnum}" class="list-group-item">
-                    <div class="checkfordelete">
-                        <input id="checkfordelete${dtidnum}" class="form-check-input me-1" type="checkbox" value="" id="firstCheckbox">
-                    </div>
-                    <div id="checkandtext${dtidnum}" class="checkandtext">
-                        <div class="todobtn">
-                            <button id="checkbtn${dtidnum}" type="button" class="btn btn">🩶</button>
-                        </div>
-                        <div class="donetextbtn" id="donetextdiv${dtidnum}">
-                            <font id="textbtn${dtidnum}" class="donetext">${items}</font>
-                        </div>
-                        <div class="textedit">
-                            <input id="input${dtidnum}" class="editing" type="text" value="${items}">
-                        </div>
-                    </div>
-                </li>`;
-                $('#checklists').append(temp_html);
-                $('#input' + dtidnum).hide();
-                $("#checkfordelete" + dtidnum).hide();
-                dataid++;
-            }
-
+            $("#checkbtn"+dtidnum).text(btnicon)
+            dataid++;
         });
+        $('.textedit').hide();
+        $('.checkfordelete').hide();
 
         //입력 대신 엔터 쳐도 똑같이 실행되도록
         $('#writing').on('keypress', async function (e) {
@@ -226,17 +208,12 @@
         })
 
 
-        let isdeleteon = false;
+        
         //삭제버튼 클릭
         $("#deletebutton").click(async function () {
             isdeleteon = true;
             $("#savinganddelete").css("display","none");
-            for (let i = 0; i < dataid; i++) {
-                let num = twolength(i);
-                $("#checkfordelete" + num).show();
-            }
-
-
+            $(".checkfordelete").show();
             $("#return, #deletedone, #alldelete").css("display","flex");
         })
 
@@ -246,7 +223,7 @@
             let allcheck = false;
             for (let i = 0; i < dataid; i++) {
                 let num = twolength(i);
-                let ischecked = $("#checkfordelete" + num).is(':checked');
+                let ischecked = $("#checkfordel" + num).is(':checked');
                 if (ischecked == false) {
                     allcheck = true;
                     console.log(allcheck);
@@ -255,21 +232,18 @@
             }
             for (let i = 0; i < dataid; i++) {
                 let num = twolength(i);
-                $("#checkfordelete" + num).prop('checked', allcheck);
+                $("#checkfordel" + num).prop('checked', allcheck);
             }
         })
 
         //삭제완료
         $("#deletedone").click(async function () {
-            isdeleteon = false;
-            let i = 0;
+            isdeleteon = false;                    
             let savedlist = [];
             let donelist = [];
             for (let i = 0; i < dataid; i++) {
                 let num = twolength(i);
-                $("#checkfordelete" + num).hide();
-                let ischecked = $("#checkfordelete" + num).is(':checked');
-
+                let ischecked = $("#checkfordel" + num).is(':checked');
                 if (ischecked == true) {
                     await deleteDoc(doc(db, "todolist", "todo" + num));
                 }
@@ -320,38 +294,32 @@
                 await updateDoc(editer, {
                     'done': true
                 })
-                $("#textbtn" + editnum).css("text-decoration", "line-through");
-                $("#donetextbtn" + editnum).css("text-decoration", "line-through");
+                $("#textlist" + editnum).css("text-decoration", "line-through");
+                $("#textlist" + editnum).css("text-decoration", "line-through");
             } else {
                 $("#checkbtn" + editnum).text("🤍");
                 const editer = doc(db, "todolist", "todo" + editnum);
                 await updateDoc(editer, {
                     'done': false
                 })
-                $("#textbtn" + editnum).css("text-decoration", "none");
-                $("#donetextbtn" + editnum).css("text-decoration", "none");
+                $("#textlist" + editnum).css("text-decoration", "none");
+                $("#textlist" + editnum).css("text-decoration", "none");
             }
         })
 
         //수정 버튼 클릭
-        let isediton = false;
         $("#editingbutton").on('click', async function () {
             isediton = true;
             $("#savinganddelete").css("display","none");
-            for (let i = 0; i < dataid; i++) {
-                let idoftext = twolength(i);
-                $('#textbtn' + idoftext).hide();
-                $('#input' + idoftext).show();
-            }
-
-            $("#return","#editdone").show();
-
+            $('.textlist, .donetextlist').hide();
+            $('.textedit').show();
             $("#return, #editdone").css("display","flex");
         })
 
         //저장 > 수정한것 적용
         $('#editdone').on('click', async function (e) {
             isediton = false;
+
             for (let i = 0; i < dataid; i++) {
                 let idoftext = twolength(i);
                 let input = $('#input' + idoftext).val();
@@ -381,22 +349,15 @@
         $("#return").on('click', async function () {
             $("#savinganddelete").css("display","flex");
             $("#return, #deletedone, #alldelete, #editdone").css("display","none");
-            if (isdeleteon = true) {
+            if (isdeleteon) {
                 isdeleteon = false;
-                for (let i = 0; i < dataid; i++) {
-                    let num = twolength(i);
-                    $("#checkfordelete" + num).hide();
-                }
+                $(".checkfordelete").hide();
 
             }
-            if (isediton = true) {
+            if (isediton) {
                 isediton = false;
-                for (let i = 0; i < dataid; i++) {
-                    console.log(i);
-                    let idoftext = twolength(i);
-                    $('#textbtn' + idoftext).show();
-                    $('#input' + idoftext).hide();
-                }
+                $(".textedit").hide();
+                $(".textlist, .donetextlist").show();
             }
             
         })
